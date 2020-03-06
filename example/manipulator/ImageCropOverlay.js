@@ -39,6 +39,7 @@ class ImageCropOverlay extends React.Component {
             onPanResponderRelease: this.handlePanResponderEnd,
             onPanResponderTerminate: this.handlePanResponderEnd,
         })
+        this.props.onLayoutChanged(this.state.initialTop, this.state.initialLeft, this.state.initialWidth, this.state.initialHeight)
     }
 
     render() {
