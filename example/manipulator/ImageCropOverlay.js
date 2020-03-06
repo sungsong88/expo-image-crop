@@ -18,7 +18,7 @@ class ImageCropOverlay extends React.Component {
         draggingBL: false,
         draggingBM: false,
         draggingBR: false,
-        initialTop: props.initialTop,
+        initialTop: fixedHeightRatioToTheWidth ? (props.initialHeight / 2 - (props.initialWidth * fixedHeightRatioToTheWidth / 2)) : props.initialTop,
         initialLeft: props.initialLeft,
         initialWidth: props.initialWidth,
         initialHeight: fixedHeightRatioToTheWidth ? (props.initialWidth * fixedHeightRatioToTheWidth) : props.initialHeight,

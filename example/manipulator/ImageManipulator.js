@@ -34,6 +34,8 @@ class ExpoImageManipulator extends Component {
         this.state = {
             cropMode: false,
             processing: false,
+            fixedRatioFirstCropIsRun: false,
+            fixedRatioEditingFinished: false,
             zoomScale: 1,
         }
 
@@ -302,7 +304,9 @@ class ExpoImageManipulator extends Component {
             uri,
             base64,
             cropMode,
-            processing
+            processing,
+            fixedRatioFirstCropIsRun,
+            fixedRatioEditingFinished
         } = this.state
 
         const imageRatio = this.actualSize.height / this.actualSize.width
@@ -405,7 +409,16 @@ class ExpoImageManipulator extends Component {
                                                     >
                                                         <MaterialIcon size={20} name="flip" color="white" />
                                                     </TouchableOpacity>
-                                                    <TouchableOpacity onPress={() => { onPictureChoosed({ uri, base64 }); this.onToggleModal() }}
+                                                    <TouchableOpacity onPress={() => { 
+                                                        if(fixedRatio) {
+                                                            this.setState({ fixedRatioEditingFinished: true });
+                                                            this.onCropImage();
+                                                        }
+                                                        else {
+                                                            onPictureChoosed({ uri, base64 }); 
+                                                            this.onToggleModal() 
+                                                        }
+                                                    }}
                                                         style={{
                                                             marginLeft: 10, width: 60, height: 32, alignItems: 'center', justifyContent: 'center',
                                                         }}
@@ -465,7 +478,17 @@ class ExpoImageManipulator extends Component {
                             resizeMode={imageRatio >= 1 ? 'contain' : 'contain'}
                             width={width}
                             height={originalHeight}
-                            onLoadEnd={fixedRatio ? () => this.setState({ cropMode: true }) : null}
+                            onLoadEnd={
+                                fixedRatio ? (
+                                    !fixedRatioFirstCropIsRun ? 
+                                        () => this.setState({ cropMode: true, fixedRatioFirstCropIsRun: true }) 
+                                        : (
+                                            fixedRatioEditingFinished ? 
+                                                () => { onPictureChoosed({ uri, base64 }); this.onToggleModal() }
+                                                : null
+                                        )
+                                    ) : null
+                            }
                             // onLayout={this.calculateMaxSizes}
                         />
                         {!!cropMode && (
