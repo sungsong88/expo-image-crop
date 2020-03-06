@@ -2,7 +2,13 @@ import React, { Component } from 'react'
 import { View, PanResponder, Dimensions } from 'react-native'
 
 class ImageCropOverlay extends React.Component {
-    state = {
+
+    constructor(props) {
+      super(props);
+
+      const fixedHeightRatioToTheWidth = props.fixedRatio ? (props.fixedRatio.split(":")[1] / props.fixedRatio.split(":")[0]) : null;
+    
+      this.state = {
         draggingTL: false,
         draggingTM: false,
         draggingTR: false,
@@ -12,13 +18,15 @@ class ImageCropOverlay extends React.Component {
         draggingBL: false,
         draggingBM: false,
         draggingBR: false,
-        initialTop: this.props.initialTop,
-        initialLeft: this.props.initialLeft,
-        initialWidth: this.props.initialWidth,
-        initialHeight: this.props.initialHeight,
+        initialTop: props.initialTop,
+        initialLeft: props.initialLeft,
+        initialWidth: props.initialWidth,
+        initialHeight: fixedHeightRatioToTheWidth ? (props.initialWidth * fixedHeightRatioToTheWidth) : props.initialHeight,
+        fixedHeightRatioToTheWidth,
 
         offsetTop: 0,
         offsetLeft: 0,
+      };
     }
 
     panResponder = {}

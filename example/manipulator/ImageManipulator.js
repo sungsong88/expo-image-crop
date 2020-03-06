@@ -296,12 +296,13 @@ class ExpoImageManipulator extends Component {
             allowFlip = true,
             btnTexts,
             fixedMask,
+            fixedRatio
         } = this.props
         const {
             uri,
             base64,
             cropMode,
-            processing,
+            processing
         } = this.state
 
         const imageRatio = this.actualSize.height / this.actualSize.width
@@ -347,7 +348,7 @@ class ExpoImageManipulator extends Component {
                             width: '100%', paddingHorizontal: 15, height: 44, alignItems: 'center',
                         }}
                     >
-                        {!cropMode
+                        {!cropMode || fixedRatio
                             ? (
                                 <View style={{ flexDirection: 'row' }}>
                                     <TouchableOpacity onPress={() => this.onToggleModal()}
@@ -358,13 +359,18 @@ class ExpoImageManipulator extends Component {
                                         <Icon size={24} name="arrow-left" color="white" />
                                     </TouchableOpacity>
                                     <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end' }}>
-                                        <TouchableOpacity onPress={() => this.setState({ cropMode: true })}
-                                            style={{
-                                                marginLeft: 10, width: 32, height: 32, alignItems: 'center', justifyContent: 'center',
-                                            }}
-                                        >
-                                            <Icon size={20} name="crop" color="white" />
-                                        </TouchableOpacity>
+                                        {
+                                            !fixedRatio
+                                            && (
+                                                <TouchableOpacity onPress={() => this.setState({ cropMode: true })}
+                                                    style={{
+                                                        marginLeft: 10, width: 32, height: 32, alignItems: 'center', justifyContent: 'center',
+                                                    }}
+                                                >
+                                                    <Icon size={20} name="crop" color="white" />
+                                                </TouchableOpacity>
+                                            )
+                                        }
                                         {
                                             allowRotate
                                             && (
@@ -459,6 +465,7 @@ class ExpoImageManipulator extends Component {
                             resizeMode={imageRatio >= 1 ? 'contain' : 'contain'}
                             width={width}
                             height={originalHeight}
+                            onLoadEnd={fixedRatio ? () => this.setState({ cropMode: true }) : null}
                             // onLayout={this.calculateMaxSizes}
                         />
                         {!!cropMode && (
@@ -476,6 +483,7 @@ class ExpoImageManipulator extends Component {
                                 minHeight={(fixedMask && fixedMask.height) || 100}
                                 minWidth={(fixedMask && fixedMask.width) || 100}
                                 borderColor={borderColor}
+                                fixedRatio={fixedRatio}
                             />
                         )
                         }
@@ -503,6 +511,7 @@ ExpoImageManipulator.defaultProps = {
         base64: false,
     },
     fixedMask: null,
+    fixedRatio: null
 }
 
 ExpoImageManipulator.propTypes = {
@@ -511,6 +520,7 @@ ExpoImageManipulator.propTypes = {
     onPictureChoosed: PropTypes.func,
     btnTexts: PropTypes.object,
     fixedMask: PropTypes.object,
+    fixedRatio: PropTypes.string,
     saveOptions: PropTypes.object,
     photo: PropTypes.object.isRequired,
     onToggleModal: PropTypes.func.isRequired,
