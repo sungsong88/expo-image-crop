@@ -47,10 +47,35 @@ class ImageCropOverlay extends React.Component {
     }
 
     render() {
-        const {
-            draggingTL, draggingTM, draggingTR, draggingML, draggingMM, draggingMR, draggingBL, draggingBM, draggingBR, initialTop, initialLeft, initialHeight, initialWidth, offsetTop, offsetLeft,
+        let {
+            draggingTL, 
+            draggingTM, 
+            draggingTR, 
+            draggingML, 
+            draggingMM, 
+            draggingMR, 
+            draggingBL, 
+            draggingBM, 
+            draggingBR, 
+            initialTop, 
+            initialLeft, 
+            initialHeight, 
+            initialWidth, 
+            offsetTop, 
+            offsetLeft,
+            fixedHeightRatioToTheWidth
         } = this.state
         const style = {}
+
+        if(fixedHeightRatioToTheWidth) {
+            if(draggingTM || draggingBM || draggingML || draggingMR) {
+                draggingTM = false;
+                draggingBM = false;
+                draggingML = false;
+                draggingMR = false;
+                draggingMM = true;
+            }
+        }
 
         style.width = initialWidth + ((draggingTL || draggingML || draggingBL) ? -offsetLeft : (draggingTM || draggingMM || draggingBM) ? 0 : offsetLeft)
         style.height = initialHeight + ((draggingTL || draggingTM || draggingTR) ? -offsetTop : (draggingML || draggingMM || draggingMR) ? 0 : offsetTop)
@@ -268,11 +293,11 @@ class ImageCropOverlay extends React.Component {
     }
 
     determinXY = (deltaX, deltaY) => {
-        const {
+        let {
             minHeight,
             minWidth
         } = this.props;
-        const {
+        let {
             draggingTL, 
             draggingTM, 
             draggingTR, 
@@ -290,10 +315,27 @@ class ImageCropOverlay extends React.Component {
             initialTop,
             initialLeft,
             initialWidth,
-            initialHeight
+            initialHeight,
+            fixedHeightRatioToTheWidth
         } = this.state;
         const initialBottom = initialTop + initialHeight;
         const initialRight = initialLeft + initialWidth;
+
+        if(fixedHeightRatioToTheWidth) {
+            if(draggingTM || draggingBM || draggingML || draggingMR) {
+                draggingTM = false;
+                draggingBM = false;
+                draggingML = false;
+                draggingMR = false;
+                draggingMM = true;
+            }
+            if(draggingTL || draggingBR) {
+                deltaX = deltaY / fixedHeightRatioToTheWidth;
+            }
+            else if(draggingTR || draggingBL) {
+                deltaX = -deltaY / fixedHeightRatioToTheWidth;
+            }
+        }
 
         let determinedY = 0;
 
@@ -388,15 +430,36 @@ class ImageCropOverlay extends React.Component {
 
     // When the touch/mouse is lifted
     handlePanResponderEnd = (e, gestureState) => {
-        const {
+        let {
             imageTop,
             imageLeft,
             imageRight,
             imageBottom,
-            initialTop, initialLeft, initialWidth, initialHeight, draggingTL, draggingTM, draggingTR, draggingML, draggingMM, draggingMR, draggingBL, draggingBM, draggingBR,
+            initialTop, 
+            initialLeft, 
+            initialWidth, 
+            initialHeight, 
+            draggingTL, 
+            draggingTM, 
+            draggingTR, 
+            draggingML, 
+            draggingMM, 
+            draggingMR, 
+            draggingBL, 
+            draggingBM, 
+            draggingBR,
+            fixedHeightRatioToTheWidth
         } = this.state
-        const initialBottom = initialTop + initialHeight;
-        const initialRight = initialLeft + initialWidth;
+
+        if(fixedHeightRatioToTheWidth) {
+            if(draggingTM || draggingBM || draggingML || draggingMR) {
+                draggingTM = false;
+                draggingBM = false;
+                draggingML = false;
+                draggingMR = false;
+                draggingMM = true;
+            }
+        }
 
         const state = {
             draggingTL: false,

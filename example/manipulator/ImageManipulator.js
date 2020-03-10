@@ -322,6 +322,8 @@ class ExpoImageManipulator extends Component {
         let imageHeight;
         let cropInitialTop;
         let cropInitialLeft;
+        let minWidth = 100;
+        let minHeight = 100;
 
         // Narrow picture
         if(viewFinderRatio < imageRatio) {
@@ -346,6 +348,15 @@ class ExpoImageManipulator extends Component {
             cropHeight = retreivedHeight;
             cropInitialLeft = (viewFinderWidth - retrievedWidth) / 2;
             cropInitialTop = (viewFinderHeight - retreivedHeight) / 2;
+
+            let retrievedMinWidth = minWidth;
+            let retrievedMinHeight = minWidth * fixedCalculatedRatio;
+            if(retrievedMinHeight < minHeight) {
+                retrievedMinWidth = minHeight / fixedCalculatedRatio;
+                retrievedMinHeight = minHeight;
+            }
+            minWidth = retrievedMinWidth;
+            minHeight = retrievedMinHeight;
         }
         else {
             cropWidth = imageWidth;
@@ -539,8 +550,8 @@ class ExpoImageManipulator extends Component {
                                 initialHeight={(fixedMask && fixedMask.height) || cropHeight}
                                 initialTop={cropInitialTop}
                                 initialLeft={cropInitialLeft}
-                                minHeight={(fixedMask && fixedMask.height) || 100}
-                                minWidth={(fixedMask && fixedMask.width) || 100}
+                                minHeight={(fixedMask && fixedMask.height) || minHeight}
+                                minWidth={(fixedMask && fixedMask.width) || minWidth}
                                 borderColor={borderColor}
                                 fixedRatio={fixedRatio}
                             />
