@@ -4,29 +4,33 @@ import { View, PanResponder, Dimensions } from 'react-native'
 class ImageCropOverlay extends React.Component {
 
     constructor(props) {
-      super(props);
+        super(props);
 
-      const fixedHeightRatioToTheWidth = props.fixedRatio ? (props.fixedRatio.split(":")[1] / props.fixedRatio.split(":")[0]) : null;
-    
-      this.state = {
-        draggingTL: false,
-        draggingTM: false,
-        draggingTR: false,
-        draggingML: false,
-        draggingMM: false,
-        draggingMR: false,
-        draggingBL: false,
-        draggingBM: false,
-        draggingBR: false,
-        initialTop: fixedHeightRatioToTheWidth ? (props.initialHeight / 2 - (props.initialWidth * fixedHeightRatioToTheWidth / 2)) : props.initialTop,
-        initialLeft: props.initialLeft,
-        initialWidth: props.initialWidth,
-        initialHeight: fixedHeightRatioToTheWidth ? (props.initialWidth * fixedHeightRatioToTheWidth) : props.initialHeight,
-        fixedHeightRatioToTheWidth,
+        const fixedHeightRatioToTheWidth = props.fixedRatio ? (props.fixedRatio.split(":")[1] / props.fixedRatio.split(":")[0]) : null;
 
-        offsetTop: 0,
-        offsetLeft: 0,
-      };
+        this.state = {
+            draggingTL: false,
+            draggingTM: false,
+            draggingTR: false,
+            draggingML: false,
+            draggingMM: false,
+            draggingMR: false,
+            draggingBL: false,
+            draggingBM: false,
+            draggingBR: false,
+            imageTop: props.imageTop,
+            imageLeft: props.imageLeft,
+            imageRight: props.imageRight,
+            imageBottom: props.imageBottom,
+            initialTop: fixedHeightRatioToTheWidth && props.initialHeight > props.initialWidth ? (props.initialHeight / 2 - (props.initialWidth * fixedHeightRatioToTheWidth / 2)) : props.initialTop,
+            initialLeft: fixedHeightRatioToTheWidth && props.initialWidth > props.initialHeight ? (props.initialWidth / 2 - (props.initialHeight * fixedHeightRatioToTheWidth / 2)) : props.initialLeft,
+            initialWidth: fixedHeightRatioToTheWidth && props.initialWidth > props.initialHeight ? (props.initialHeight * fixedHeightRatioToTheWidth) :  props.initialWidth,
+            initialHeight: fixedHeightRatioToTheWidth && props.initialHeight > props.initialWidth ? (props.initialWidth * fixedHeightRatioToTheWidth) : props.initialHeight,
+            fixedHeightRatioToTheWidth,
+
+            offsetTop: 0,
+            offsetLeft: 0,
+        };
     }
 
     panResponder = {}
@@ -48,11 +52,8 @@ class ImageCropOverlay extends React.Component {
         } = this.state
         const style = {}
 
-        style.top = initialTop + ((draggingTL || draggingTM || draggingTR || draggingMM) ? offsetTop : 0)
-        style.left = initialLeft + ((draggingTL || draggingML || draggingBL || draggingMM) ? offsetLeft : 0)
         style.width = initialWidth + ((draggingTL || draggingML || draggingBL) ? -offsetLeft : (draggingTM || draggingMM || draggingBM) ? 0 : offsetLeft)
         style.height = initialHeight + ((draggingTL || draggingTM || draggingTR) ? -offsetTop : (draggingML || draggingMM || draggingMR) ? 0 : offsetTop)
-
         if (style.width > this.props.initialWidth) {
             style.width = this.props.initialWidth
         }
@@ -65,6 +66,21 @@ class ImageCropOverlay extends React.Component {
         if (style.height < this.props.minHeight) {
             style.height = this.props.minHeight
         }
+        style.top = initialTop + (
+            draggingBL || draggingBM || draggingBR ? 
+                style.height === this.props.minHeight ? offsetTop + initialHeight - this.props.minHeight : 0
+                : (draggingTL || draggingTM || draggingTR || draggingMM) ? 
+                    offsetTop 
+                    : 0
+        )
+        style.left = initialLeft + (
+            draggingTR || draggingMR || draggingBR ? 
+                style.width === this.props.minWidth ? offsetLeft + initialWidth - this.props.minWidth : 0
+                : (draggingTL || draggingML || draggingBL || draggingMM) ? 
+                    offsetLeft 
+                    : 0
+        )
+
         const { borderColor } = this.props
         return (
             <View {...this.panResponder.panHandlers}
@@ -195,8 +211,9 @@ class ImageCropOverlay extends React.Component {
         const {
             initialLeft, initialTop, initialWidth, initialHeight,
         } = this.state
+
         const xPos = parseInt((x - initialLeft) / (initialWidth / 3))
-        const yPos = parseInt((y - initialTop - 64) / (initialHeight / 3))
+        const yPos = parseInt((y - initialTop - this.props.viewerOffsetY) / (initialHeight / 3))
 
         const index = yPos * 3 + xPos
         if (index == 0) {
@@ -250,20 +267,136 @@ class ImageCropOverlay extends React.Component {
         }
     }
 
+    determinXY = (deltaX, deltaY) => {
+        const {
+            minHeight,
+            minWidth
+        } = this.props;
+        const {
+            draggingTL, 
+            draggingTM, 
+            draggingTR, 
+            draggingML, 
+            draggingMM, 
+            draggingMR, 
+            draggingBL, 
+            draggingBM, 
+            draggingBR,
+
+            imageTop,
+            imageLeft,
+            imageRight,
+            imageBottom,
+            initialTop,
+            initialLeft,
+            initialWidth,
+            initialHeight
+        } = this.state;
+        const initialBottom = initialTop + initialHeight;
+        const initialRight = initialLeft + initialWidth;
+
+        let determinedY = 0;
+
+        if (deltaY < 0) {
+            if (!(draggingTL || draggingTM || draggingTR || draggingMM)) {
+                if(deltaY > -initialBottom + minHeight + imageTop) {
+                    determinedY = deltaY;
+                }
+                else {
+                    determinedY = -initialBottom + minHeight + imageTop;
+                }
+            }
+            else if (draggingTL || draggingTM || draggingTR || draggingMM) {
+                if (deltaY + initialTop > imageTop) {
+                    determinedY = deltaY;
+                }
+                else {
+                    determinedY = imageTop - initialTop;
+                }
+            }
+        }
+        else if (deltaY > 0) {
+            if (!(draggingBL || draggingBM || draggingBR || draggingMM)) {
+                if(deltaY < (initialBottom - minHeight - initialTop) + (imageBottom - initialBottom)) {
+                    determinedY = deltaY;
+                }
+                else {
+                    determinedY = (initialBottom - minHeight - initialTop) + (imageBottom - initialBottom);
+                }
+            }
+            else if (draggingBL || draggingBM || draggingBR || draggingMM) {
+                if(deltaY + initialBottom < imageBottom) {
+                    determinedY = deltaY;
+                }
+                else {
+                    determinedY = imageBottom - initialBottom;
+                }
+            }
+        }
+
+        let determinedX = 0;
+
+        if (deltaX < 0) {
+            if (!(draggingTL || draggingML || draggingBL || draggingMM)) {
+                if(deltaX > -initialRight + minWidth + imageLeft) {
+                    determinedX = deltaX;
+                }
+                else {
+                    determinedX = -initialRight + minWidth + imageLeft;
+                }
+            }
+            else if (draggingTL || draggingML || draggingBL || draggingMM) {
+                if (deltaX + initialLeft > imageLeft) {
+                    determinedX = deltaX;
+                }
+                else {
+                    determinedX = imageLeft - initialLeft;
+                }
+            }
+        }
+        else if (deltaX > 0) {
+            if (!(draggingTR || draggingMR || draggingBR || draggingMM)) {
+                if(deltaX < (initialRight - minWidth - initialLeft) + (imageRight - initialRight)) {
+                    determinedX = deltaX;
+                }
+                else {
+                    determinedX = (initialRight - minWidth - initialLeft) + (imageRight - initialRight);
+                }
+            }
+            else if (draggingTR || draggingMR || draggingBR || draggingMM) {
+                if(deltaX + initialRight < imageRight) {
+                    determinedX = deltaX;
+                }
+                else {
+                    determinedX = imageRight - initialRight;
+                }
+            }
+        }
+
+        return [ determinedX, determinedY ];
+    }
+
     // Every time the touch/mouse moves
     handlePanResponderMove = (e, gestureState) => {
         // Keep track of how far we've moved in total (dx and dy)
+        const [ determinedX, determinedY ] = this.determinXY(gestureState.dx, gestureState.dy);
         this.setState({
-            offsetTop: gestureState.dy,
-            offsetLeft: gestureState.dx,
+            offsetTop: determinedY,
+            offsetLeft: determinedX,
         })
     }
 
     // When the touch/mouse is lifted
     handlePanResponderEnd = (e, gestureState) => {
         const {
+            imageTop,
+            imageLeft,
+            imageRight,
+            imageBottom,
             initialTop, initialLeft, initialWidth, initialHeight, draggingTL, draggingTM, draggingTR, draggingML, draggingMM, draggingMR, draggingBL, draggingBM, draggingBR,
         } = this.state
+        const initialBottom = initialTop + initialHeight;
+        const initialRight = initialLeft + initialWidth;
 
         const state = {
             draggingTL: false,
@@ -279,11 +412,10 @@ class ImageCropOverlay extends React.Component {
             offsetLeft: 0,
         }
 
-        state.initialTop = initialTop + ((draggingTL || draggingTM || draggingTR || draggingMM) ? gestureState.dy : 0)
-        state.initialLeft = initialLeft + ((draggingTL || draggingML || draggingBL || draggingMM) ? gestureState.dx : 0)
-        state.initialWidth = initialWidth + ((draggingTL || draggingML || draggingBL) ? -gestureState.dx : (draggingTM || draggingMM || draggingBM) ? 0 : gestureState.dx)
-        state.initialHeight = initialHeight + ((draggingTL || draggingTM || draggingTR) ? -gestureState.dy : (draggingML || draggingMM || draggingMR) ? 0 : gestureState.dy)
+        const [ determinedX, determinedY ] = this.determinXY(gestureState.dx, gestureState.dy);
 
+        state.initialWidth = initialWidth + ((draggingTL || draggingML || draggingBL) ? -determinedX : (draggingTM || draggingMM || draggingBM) ? 0 : determinedX)
+        state.initialHeight = initialHeight + ((draggingTL || draggingTM || draggingTR) ? -determinedY : (draggingML || draggingMM || draggingMR) ? 0 : determinedY)
         if (state.initialWidth > this.props.initialWidth) {
             state.initialWidth = this.props.initialWidth
         }
@@ -296,6 +428,20 @@ class ImageCropOverlay extends React.Component {
         if (state.initialHeight < this.props.minHeight) {
             state.initialHeight = this.props.minHeight
         }
+        state.initialTop = initialTop + (
+            draggingBL || draggingBM || draggingBR ? 
+                state.initialHeight === this.props.minHeight ? determinedY + initialHeight - this.props.minHeight : 0
+                : (draggingTL || draggingTM || draggingTR || draggingMM) ? 
+                    determinedY 
+                    : 0
+        )
+        state.initialLeft = initialLeft + (
+            draggingTR || draggingMR || draggingBR ? 
+                state.initialWidth === this.props.minWidth ? determinedX + initialWidth - this.props.minWidth : 0
+                : (draggingTL || draggingML || draggingBL || draggingMM) ? 
+                    determinedX 
+                    : 0
+        )
 
         this.setState(state)
         this.props.onLayoutChanged(state.initialTop, state.initialLeft, state.initialWidth, state.initialHeight)

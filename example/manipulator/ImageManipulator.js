@@ -19,7 +19,12 @@ import MaterialIcon from 'react-native-vector-icons/MaterialIcons'
 import { isIphoneX } from 'react-native-iphone-x-helper'
 import ImageCropOverlay from './ImageCropOverlay'
 
-const { width } = Dimensions.get('window')
+const windowWidth = Dimensions.get('window').width;
+const windowHeight = Dimensions.get('window').height;
+const toolbarHeight = 64;
+const viewFinderWidth = windowWidth;
+const viewFinderHeight = windowHeight - toolbarHeight - (isIphoneX() ? 44 : 0);
+const viewFinderRatio = viewFinderHeight / viewFinderWidth;
 
 YellowBox.ignoreWarnings(['componentWillReceiveProps', 'componentWillUpdate', 'componentWillMount'])
 YellowBox.ignoreWarnings([
@@ -34,6 +39,7 @@ class ExpoImageManipulator extends Component {
         this.state = {
             cropMode: false,
             processing: false,
+            viewerOffsetY: 0,
             fixedRatioFirstCropIsRun: false,
             fixedRatioEditingFinished: false,
             zoomScale: 1,
@@ -177,15 +183,11 @@ class ExpoImageManipulator extends Component {
 
     getCropBounds = (actualWidth, actualHeight) => {
         const imageRatio = actualHeight / actualWidth
-        let originalHeight = Dimensions.get('window').height - 64
-        if (isIphoneX()) {
-            originalHeight = Dimensions.get('window').height - 122
-        }
-        const renderedImageWidth = imageRatio < (originalHeight / width) ? width : originalHeight / imageRatio
-        const renderedImageHeight = imageRatio < (originalHeight / width) ? width * imageRatio : originalHeight
+        const renderedImageWidth = imageRatio < (viewFinderHeight / windowWidth) ? windowWidth : viewFinderHeight / imageRatio
+        const renderedImageHeight = imageRatio < (viewFinderHeight / windowWidth) ? windowWidth * imageRatio : viewFinderHeight
 
-        const renderedImageY = (originalHeight - renderedImageHeight) / 2.0
-        const renderedImageX = (width - renderedImageWidth) / 2.0
+        const renderedImageY = (viewFinderHeight - renderedImageHeight) / 2.0
+        const renderedImageX = (windowWidth - renderedImageWidth) / 2.0
 
         const renderImageObj = {
             left: renderedImageX,
@@ -305,24 +307,53 @@ class ExpoImageManipulator extends Component {
             base64,
             cropMode,
             processing,
+            viewerOffsetY,
             fixedRatioFirstCropIsRun,
             fixedRatioEditingFinished
         } = this.state
 
-        const imageRatio = this.actualSize.height / this.actualSize.width
-        let originalHeight = Dimensions.get('window').height - 64
-        if (isIphoneX()) {
-            originalHeight = Dimensions.get('window').height - 122
+        const imageRatio = this.actualSize.height / this.actualSize.width;
+        const fixedCalculatedRatio = fixedRatio ? (fixedRatio.split(":")[1] / fixedRatio.split(":")[0]) : null;
+        const cropRatio = fixedCalculatedRatio ? fixedCalculatedRatio : imageRatio;
+
+        let cropWidth;
+        let cropHeight;
+        let imageWidth;
+        let imageHeight;
+        let cropInitialTop;
+        let cropInitialLeft;
+
+        // Narrow picture
+        if(viewFinderRatio < imageRatio) {
+            imageWidth = viewFinderHeight / imageRatio;
+            imageHeight = viewFinderHeight;
+        }
+        // Wide picture
+        else {
+            imageWidth = viewFinderWidth;
+            imageHeight = viewFinderWidth * imageRatio;
         }
 
-        const cropRatio = originalHeight / width
-
-        const cropWidth = imageRatio < cropRatio ? width : originalHeight / imageRatio
-        const cropHeight = imageRatio < cropRatio ? width * imageRatio : originalHeight
-
-        const cropInitialTop = (originalHeight - cropHeight) / 2.0
-        const cropInitialLeft = (width - cropWidth) / 2.0
-
+        if(fixedCalculatedRatio) {
+            if(imageWidth > imageHeight) {
+                cropWidth = imageHeight;
+                cropHeight = imageHeight;
+                cropInitialLeft = (viewFinderWidth - imageHeight) / 2
+                cropInitialTop = (viewFinderHeight - imageHeight) / 2
+            }
+            else {
+                cropWidth = imageWidth;
+                cropHeight = imageWidth;
+                cropInitialLeft = (viewFinderWidth - imageWidth) / 2
+                cropInitialTop = (viewFinderHeight - imageWidth) / 2
+            }
+        }
+        else {
+            cropWidth = imageWidth;
+            cropHeight = imageHeight;
+            cropInitialLeft = (viewFinderWidth - imageWidth) / 2
+            cropInitialTop = (viewFinderHeight - imageHeight) / 2
+        }
 
         if (this.currentSize.width === 0 && cropMode) {
             this.currentSize.width = cropWidth
@@ -331,6 +362,7 @@ class ExpoImageManipulator extends Component {
             this.currentPos.top = cropInitialTop
             this.currentPos.left = cropInitialLeft
         }
+
         return (
             <Modal
                 animationType="slide"
@@ -343,13 +375,13 @@ class ExpoImageManipulator extends Component {
             >
                 <SafeAreaView
                     style={{
-                        width, flexDirection: 'row', backgroundColor: 'black', justifyContent: 'space-between',
+                        width: windowWidth, flexDirection: 'row', backgroundColor: 'black', justifyContent: 'space-between',
                     }}
                 >
                     <ScrollView scrollEnabled={false}
                         horizontal
                         contentContainerStyle={{
-                            width: '100%', paddingHorizontal: 15, height: 44, alignItems: 'center',
+                            width: '100%', paddingHorizontal: 15, height: toolbarHeight, alignItems: 'center',
                         }}
                     >
                         {!cropMode || fixedRatio
@@ -455,7 +487,7 @@ class ExpoImageManipulator extends Component {
                         }
                     </ScrollView>
                 </SafeAreaView>
-                <View style={{ flex: 1, backgroundColor: 'black', width: Dimensions.get('window').width }}>
+                <View style={{ flex: 1, backgroundColor: 'black', width: windowWidth }} onLayout={({ nativeEvent }) => this.setState({ viewerOffsetY: nativeEvent.layout.y})}>
                     <ScrollView
                         style={{ position: 'relative', flex: 1 }}
                         contentContainerStyle={{ backgroundColor: 'black' }}
@@ -476,8 +508,8 @@ class ExpoImageManipulator extends Component {
                             style={{ backgroundColor: 'black' }}
                             source={{ uri }}
                             resizeMode={imageRatio >= 1 ? 'contain' : 'contain'}
-                            width={width}
-                            height={originalHeight}
+                            width={windowWidth}
+                            height={viewFinderHeight}
                             onLoadEnd={
                                 fixedRatio ? (
                                     !fixedRatioFirstCropIsRun ? 
@@ -499,6 +531,11 @@ class ExpoImageManipulator extends Component {
                                     this.currentPos.top = top
                                     this.currentPos.left = left
                                 }}
+                                viewerOffsetY={viewerOffsetY}
+                                imageTop={(viewFinderHeight - imageHeight) / 2}
+                                imageBottom={((viewFinderHeight - imageHeight) / 2) + imageHeight}
+                                imageLeft={(viewFinderWidth - imageWidth) / 2}
+                                imageRight={((viewFinderWidth - imageWidth) / 2) + imageWidth}
                                 initialWidth={(fixedMask && fixedMask.width) || cropWidth}
                                 initialHeight={(fixedMask && fixedMask.height) || cropHeight}
                                 initialTop={cropInitialTop}
