@@ -48,6 +48,8 @@ class ImageCropOverlay extends React.Component {
 
     render() {
         let {
+            imageRight,
+            imageBottom,
             draggingTL, 
             draggingTM, 
             draggingTR, 
@@ -91,6 +93,22 @@ class ImageCropOverlay extends React.Component {
         if (style.height < this.props.minHeight) {
             style.height = this.props.minHeight
         }
+        if (fixedHeightRatioToTheWidth) {
+            if(style.width / style.height < fixedHeightRatioToTheWidth) {
+                style.height = style.width * fixedHeightRatioToTheWidth
+                if(initialTop + style.height > imageBottom) {
+                    style.height = imageBottom - initialTop;
+                    style.width = style.height / fixedHeightRatioToTheWidth
+                }
+            }
+            else {
+                style.width = style.height / fixedHeightRatioToTheWidth
+                if(initialLeft + style.width > imageRight) {
+                    style.width = imageRight - initialLeft;
+                    style.height = style.width * fixedHeightRatioToTheWidth
+                }
+            }
+        }
         style.top = initialTop + (
             draggingBL || draggingBM || draggingBR ? 
                 style.height === this.props.minHeight ? offsetTop + initialHeight - this.props.minHeight : 0
@@ -105,6 +123,7 @@ class ImageCropOverlay extends React.Component {
                     offsetLeft 
                     : 0
         )
+
 
         const { borderColor } = this.props
         return (
@@ -431,8 +450,6 @@ class ImageCropOverlay extends React.Component {
     // When the touch/mouse is lifted
     handlePanResponderEnd = (e, gestureState) => {
         let {
-            imageTop,
-            imageLeft,
             imageRight,
             imageBottom,
             initialTop, 
@@ -490,6 +507,22 @@ class ImageCropOverlay extends React.Component {
         }
         if (state.initialHeight < this.props.minHeight) {
             state.initialHeight = this.props.minHeight
+        }
+        if (fixedHeightRatioToTheWidth) {
+            if(state.initialWidth / state.initialHeight < fixedHeightRatioToTheWidth) {
+                state.initialHeight = state.initialWidth * fixedHeightRatioToTheWidth
+                if(initialTop + state.initialHeight > imageBottom) {
+                    state.initialHeight = imageBottom - initialTop;
+                    state.initialWidth = state.initialHeight / fixedHeightRatioToTheWidth
+                }
+            }
+            else {
+                state.initialWidth = state.initialHeight / fixedHeightRatioToTheWidth
+                if(initialLeft + state.initialWidth > imageRight) {
+                    state.initialWidth = imageRight - initialLeft;
+                    state.initialHeight = state.initialWidth * fixedHeightRatioToTheWidth
+                }
+            }
         }
         state.initialTop = initialTop + (
             draggingBL || draggingBM || draggingBR ? 
