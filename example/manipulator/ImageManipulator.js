@@ -335,18 +335,17 @@ class ExpoImageManipulator extends Component {
         }
 
         if(fixedCalculatedRatio) {
-            if(imageWidth > imageHeight) {
-                cropWidth = imageHeight;
-                cropHeight = imageHeight;
-                cropInitialLeft = (viewFinderWidth - imageHeight) / 2
-                cropInitialTop = (viewFinderHeight - imageHeight) / 2
+            let retrievedWidth = imageWidth;
+            let retreivedHeight = imageWidth * fixedCalculatedRatio;
+            if(retreivedHeight > imageHeight) {
+                retrievedWidth = imageHeight / fixedCalculatedRatio;
+                retreivedHeight = imageHeight;
             }
-            else {
-                cropWidth = imageWidth;
-                cropHeight = imageWidth;
-                cropInitialLeft = (viewFinderWidth - imageWidth) / 2
-                cropInitialTop = (viewFinderHeight - imageWidth) / 2
-            }
+
+            cropWidth = retrievedWidth;
+            cropHeight = retreivedHeight;
+            cropInitialLeft = (viewFinderWidth - retrievedWidth) / 2;
+            cropInitialTop = (viewFinderHeight - retreivedHeight) / 2;
         }
         else {
             cropWidth = imageWidth;
